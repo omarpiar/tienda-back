@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="tienda-back.Tests/tienda-back.Tests.csproj" />
   <Project Path="tienda-back/tienda-back.csproj" />
 </Solution>
