@@ -16,7 +16,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'   # usa la versión de .NET de tu proyecto
+          dotnet-version: '10.0.x'   # usa la versión de .NET de tu proyecto
 
       - uses: actions/setup-java@v4
         with:
@@ -27,7 +27,7 @@ jobs:
         run: dotnet tool install --global dotnet-sonarscanner
 
       - name: Iniciar analisis
-        run: dotnet sonarscanner begin /k:"TU_CLAVE_PROYECTO" /o:"TU_ORGANIZACION" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
+        run: dotnet sonarscanner begin /k:"omarpiar_tienda-back" /o:"omarpiar" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
 
       - name: Compilar
         run: dotnet build --no-incremental
