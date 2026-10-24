@@ -1,86 +1,62 @@
 # tienda-back
 Backend para el proyecto de tienda
 
-## Análisis de calidad con SonarQube Cloud
+## Calidad de código (SonarQube Cloud)
 
-Este proyecto incluye un workflow de GitHub Actions (`.github/workflows/sonarqube.yml`) para ejecutar el análisis de calidad con [SonarQube Cloud](https://sonarcloud.io/).
+[SonarQube Cloud](https://sonarcloud.io/) es una plataforma de análisis estático que detecta bugs, vulnerabilidades, code smells, cobertura y deuda técnica. En este repositorio se integra mediante GitHub Actions.
 
-### Requisitos
-- Tener una cuenta en [SonarQube Cloud](https://sonarcloud.io/)
-- Crear una organización y un proyecto en SonarQube Cloud
-- Tener acceso al repositorio en GitHub con permisos para configurar secretos
+### Workflow
+- Archivo: `.github/workflows/sonarqube.yml`
+- Rama objetivo: `develop` (push) y `pull_request` (`opened`, `synchronize`, `reopened`)
+- Clave/organización actuales en el workflow: `k:"omarpiar_tienda-back"`, `o:"omarpiar"`
 
-### Configuración
+### Cómo crear el token y configurar el secreto
+1. Ir a [SonarQube Cloud](https://sonarcloud.io/) → My Account → Security → Generate Tokens y generar un token.
+2. En GitHub: `Settings → Secrets and variables → Actions → New repository secret`
+3. Nombre del secreto: `SONAR_TOKEN`
+4. Valor: pegar el token generado.
 
-1. **Generar token de SonarQube Cloud**
-   - Ir a SonarQube Cloud → My Account → Security → Generate Tokens
-   - Guardar el token generado
-
-2. **Agregar secreto al repositorio GitHub**
-   - En GitHub: Settings → Secrets and variables → Actions → New repository secret
-   - Nombre: `SONAR_TOKEN`
-   - Valor: el token generado anteriormente
-
-3. **Actualizar el workflow**
-   - Editar `.github/workflows/sonarqube.yml`
-   - Reemplazar `TU_CLAVE_PROYECTO` con la clave del proyecto (Project Key)
-   - Reemplazar `TU_ORGANIZACION` con el nombre de la organización en SonarQube Cloud
-
-### Ejecución
-El workflow se ejecuta automáticamente en:
-- `push` a la rama `main`
-- `pull_request` con los eventos `opened`, `synchronize`, `reopened`
+### Ver resultados
+Los resultados se visualizan en SonarQube Cloud para el proyecto `omarpiar_tienda-back` (o el proyecto configurado). También se reflejan en el check del Pull Request asociado.
 
 ### Ejecución local (opcional)
-Para ejecutar el análisis localmente con el SonarScanner de .NET:
-
 ```bash
 dotnet tool install --global dotnet-sonarscanner
-dotnet sonarscanner begin /k:"TU_CLAVE_PROYECTO" /o:"TU_ORGANIZACION" /d:sonar.token="TU_TOKEN_LOCAL" /d:sonar.host.url="https://sonarcloud.io"
+dotnet sonarscanner begin /k:"omarpiar_tienda-back" /o:"omarpiar" /d:sonar.token="TU_TOKEN_LOCAL" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/Migrations/**,**/*.Designer.cs"
 dotnet build --no-incremental
+dotnet test --no-build --collect:"XPlat Code Coverage;Format=opencover" --results-directory TestResults
 dotnet sonarscanner end /d:sonar.token="TU_TOKEN_LOCAL"
 ```
-## Migraciones de base de datos (Postgres)
 
-### Desarrollo con PostgreSQL local
-1. Levantar Postgres (Docker):
+## Migraciones (Entity Framework Core + PostgreSQL)
+
+### Instalación de herramientas
 ```bash
-docker run --name pg-puntopyme -e POSTGRES_PASSWORD=TU_PASSWORD_LOCAL -p 5432:5432 -d postgres:16
+dotnet tool install --global dotnet-ef
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
+dotnet ef --version
 ```
-2. Configurar user-secrets:
+
+### Cadena de conexión con user-secrets (no versionar credenciales)
 ```bash
 dotnet user-secrets init
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=puntopyme_dev;Username=postgres;Password=TU_PASSWORD_LOCAL"
 ```
-3. Registrar DbContext en Program.cs:
+
+Registrar en `Program.cs`:
 ```csharp
 builder.Services.AddDbContext<PuntoPymeDbContext>(opciones =>
     opciones.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 ```
-4. Aplicar migraciones:
-```bash
-dotnet ef migrations list
-dotnet ef database update
-```
-5. Construir desde base limpia:
-```bash
-dotnet ef database drop --force
-dotnet ef database update
-```
-6. Generar script idempotente:
-```bash
-dotnet ef migrations script --idempotent -o migraciones.sql
-```
-7. Respaldo (dev):
-```bash
-pg_dump -U postgres -d puntopyme_dev -F c -f respaldo_dev.backup
-```
-8. Revertir y reaplicar (dev):
-```bash
-pg_dump -U postgres -d puntopyme_dev -F c -f respaldo_dev.backup
-dotnet ef database update AgregarStockMinimoAProductos
-dotnet ef migrations list
-dotnet ef database update
-dotnet ef database drop --force
-dotnet ef database update
-```
+
+### Comandos
+- Crear migración: `dotnet ef migrations add NombreMigracion`
+- Listar migraciones: `dotnet ef migrations list`
+- Aplicar migraciones: `dotnet ef database update`
+- Revertir a una migración específica: `dotnet ef database update NombreMigracionAnterior`
+- Eliminar base y reconstruir desde cero (solo desarrollo): `dotnet ef database drop --force` y `dotnet ef database update`
+- Generar script idempotente: `dotnet ef migrations script --idempotent -o migraciones.sql`
+- Respaldo (solo desarrollo): `pg_dump -U postgres -d puntopyme_dev -F c -f respaldo_dev.backup`
+
+> **Nota:** Nunca se publican credenciales en el repositorio. Usa `user-secrets` (desarrollo) o variables de entorno/secrets en CI/CD.
