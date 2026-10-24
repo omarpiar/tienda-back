@@ -40,3 +40,47 @@ dotnet sonarscanner begin /k:"TU_CLAVE_PROYECTO" /o:"TU_ORGANIZACION" /d:sonar.t
 dotnet build --no-incremental
 dotnet sonarscanner end /d:sonar.token="TU_TOKEN_LOCAL"
 ```
+## Migraciones de base de datos (Postgres)
+
+### Desarrollo con PostgreSQL local
+1. Levantar Postgres (Docker):
+```bash
+docker run --name pg-puntopyme -e POSTGRES_PASSWORD=TU_PASSWORD_LOCAL -p 5432:5432 -d postgres:16
+```
+2. Configurar user-secrets:
+```bash
+dotnet user-secrets init
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=puntopyme_dev;Username=postgres;Password=TU_PASSWORD_LOCAL"
+```
+3. Registrar DbContext en Program.cs:
+```csharp
+builder.Services.AddDbContext<PuntoPymeDbContext>(opciones =>
+    opciones.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+```
+4. Aplicar migraciones:
+```bash
+dotnet ef migrations list
+dotnet ef database update
+```
+5. Construir desde base limpia:
+```bash
+dotnet ef database drop --force
+dotnet ef database update
+```
+6. Generar script idempotente:
+```bash
+dotnet ef migrations script --idempotent -o migraciones.sql
+```
+7. Respaldo (dev):
+```bash
+pg_dump -U postgres -d puntopyme_dev -F c -f respaldo_dev.backup
+```
+8. Revertir y reaplicar (dev):
+```bash
+pg_dump -U postgres -d puntopyme_dev -F c -f respaldo_dev.backup
+dotnet ef database update AgregarStockMinimoAProductos
+dotnet ef migrations list
+dotnet ef database update
+dotnet ef database drop --force
+dotnet ef database update
+```
