@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using tienda_back.Data;
+using tienda_back.Application.Interfaces;
+using tienda_back.Application.Services;
+using tienda_back.Infrastructure.Data;
+using tienda_back.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddDbContext<PuntoPymeDbContext>(opciones =>
     opciones.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+builder.Services.AddScoped<ProductoService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
