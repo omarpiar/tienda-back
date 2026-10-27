@@ -1,3 +1,7 @@
 <Solution>
+  <Project Path="tienda-back.Application/tienda-back.Application.csproj" />
+  <Project Path="tienda-back.Domain/tienda-back.Domain.csproj" />
+  <Project Path="tienda-back.Infrastructure/tienda-back.Infrastructure.csproj" />
+  <Project Path="tienda-back.Tests/tienda-back.Tests.csproj" />
   <Project Path="tienda-back/tienda-back.csproj" />
 </Solution>
