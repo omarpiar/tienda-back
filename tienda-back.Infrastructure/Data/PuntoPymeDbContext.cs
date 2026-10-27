@@ -5,13 +5,12 @@ namespace tienda_back.Infrastructure.Data;
 
 public class PuntoPymeDbContext : DbContext
 {
-    public PuntoPymeDbContext(DbContextOptions<PuntoPymeDbContext> opciones) : base(opciones) { }
+    public PuntoPymeDbContext(DbContextOptions<PuntoPymeDbContext> options) : base(options) { }
 
     public DbSet<Producto> Productos => Set<Producto>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Producto>().Property(p => p.StockMinimo).HasDefaultValue(5);
-        modelBuilder.Entity<Producto>().HasIndex(p => p.Sku).IsUnique();
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(PuntoPymeDbContext).Assembly);
     }
 }
