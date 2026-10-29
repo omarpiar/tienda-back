@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PuntoPyme.Domain/PuntoPyme.Domain.csproj" />
+    <Project Path="src/PuntoPyme.Application/PuntoPyme.Application.csproj" />
+    <Project Path="src/PuntoPyme.Infrastructure/PuntoPyme.Infrastructure.csproj" />
+    <Project Path="src/PuntoPyme.Api/PuntoPyme.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PuntoPyme.Tests/PuntoPyme.Tests.csproj" />
+  </Folder>
+</Solution>
