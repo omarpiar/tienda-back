@@ -1,0 +1,50 @@
+name: Analisis de calidad (SonarQube Cloud)
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+jobs:
+  analisis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'   # usa la versión de .NET de tu proyecto
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar SonarScanner para .NET
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      # Api (composition root y controladores delgados) e Infrastructure (EF Core/Npgsql/JWT)
+      # no tienen pruebas automatizadas: requieren PostgreSQL real, así que se excluyen de cobertura.
+      # La lógica de negocio de Application y Domain sí se mide (>= 80%).
+      - name: Iniciar analisis
+        run: >
+          dotnet sonarscanner begin /k:"omarpiar_tienda-back" /o:"omarpiar"
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          /d:sonar.host.url="https://sonarcloud.io"
+          /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
+          /d:sonar.coverage.exclusions="**/*.Designer.cs,**/PuntoPyme.Api/**,**/PuntoPyme.Infrastructure/**,**/PuntoPyme.Application/DependencyInjection.cs"
+
+      - name: Compilar
+        run: dotnet build --no-incremental
+
+      - name: Ejecutar pruebas con cobertura
+        run: dotnet test --no-build --collect:"XPlat Code Coverage;Format=opencover" --results-directory TestResults
+
+      - name: Ubicar reporte de cobertura
+        run: find TestResults -name "coverage.opencover.xml" -exec cp {} coverage.opencover.xml \;
+
+      - name: Finalizar analisis
+        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"

@@ -11,6 +11,13 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.*" />
     <PackageReference Include="NSubstitute" Version="5.*" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.0.*" />
+    <PackageReference Include="coverlet.collector" Version="6.0.*">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\PuntoPyme.Application\PuntoPyme.Application.csproj" />

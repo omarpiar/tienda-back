@@ -5,3 +5,5 @@ obj/
 .vs/
 *.user
 .env.local
+TestResults/
+coverage.opencover.xml

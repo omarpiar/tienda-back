@@ -14,7 +14,7 @@ public static class DependencyInjection
     /// <summary>No registra el DbContext: se registra en Program.cs con la cadena de conexión del ambiente.</summary>
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
-        services.Configure<JwtOptions>(config.GetSection(JwtOptions.Seccion));
+        services.Configure<JwtOptions>(opciones => config.GetSection(JwtOptions.Seccion).Bind(opciones));
         services.AddSingleton(TimeProvider.System);
 
         services.AddSingleton<IPinHasher, BCryptPinHasher>();
