@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PuntoPyme.Application\PuntoPyme.Application.csproj" />
+    <ProjectReference Include="..\PuntoPyme.Domain\PuntoPyme.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.*" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.*" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.*" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.*" />
+  </ItemGroup>
+</Project>

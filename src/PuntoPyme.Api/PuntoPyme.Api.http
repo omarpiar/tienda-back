@@ -1,0 +1,28 @@
+### Pruebas rápidas (VS Code con REST Client, o Visual Studio / Rider)
+@host = http://localhost:5080
+
+### API-01 login (admin entra como Administrador)
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "nombreUsuario": "admin", "pin": "1234", "rol": "Administrador" }
+
+###
+@token = {{login.response.body.token}}
+
+### API-02 lista
+GET {{host}}/api/productos?estado=stockBajo
+Authorization: Bearer {{token}}
+
+### API-03 detalle
+GET {{host}}/api/productos/1
+Authorization: Bearer {{token}}
+
+### API-08 reporte
+GET {{host}}/api/reportes/ventas?desdeUtc=2026-01-01T00:00:00Z&hastaUtc=2026-12-31T00:00:00Z
+Authorization: Bearer {{token}}
+
+### API-09 usuarios
+GET {{host}}/api/usuarios
+Authorization: Bearer {{token}}
