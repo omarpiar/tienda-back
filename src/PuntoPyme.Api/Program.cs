@@ -1,4 +1,3 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -9,6 +8,8 @@ using PuntoPyme.Domain.Constants;
 using PuntoPyme.Infrastructure;
 using PuntoPyme.Infrastructure.Data;
 using PuntoPyme.Infrastructure.Seguridad;
+using Scalar.AspNetCore;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
@@ -69,6 +70,7 @@ app.UseStatusCodePages();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi(); // documento en /openapi/v1.json
+    app.MapScalarApiReference(); // Expone la UI en /scalar/v1
     await DbSeeder.SembrarAsync(app.Services, config);
 }
 
