@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using PuntoPyme.Application.Common;
 using PuntoPyme.Domain.Constants;
+using PuntoPyme.Domain.Entities;
 
 namespace PuntoPyme.Application.Auth;
 
@@ -53,17 +54,45 @@ public partial class AuthService(
         usuario.BloqueadoHastaUtc = null;
         await usuarios.ActualizarAsync(usuario, ct);
 
-        // D2: un Administrador entra como Administrador o Cajero; un Cajero solo como Cajero.
-        if (solicitud.Rol == Roles.Administrador && usuario.RolId != Roles.AdministradorId)
+        // Después del login se entra como Cajero; un Administrador puede cambiar a Administrador.
+        return EmitirSesion(usuario, Roles.Cajero);
+    }
+
+    /// <summary>
+    /// Cambia el rol activo de una sesión ya iniciada. Un Administrador puede alternar entre
+    /// Administrador y Cajero; un Cajero solo puede seguir como Cajero.
+    /// </summary>
+    public async Task<LoginResponse> CambiarRolAsync(int usuarioId, string? rol, CancellationToken ct = default)
+    {
+        if (rol is null || !Roles.Todos.Contains(rol))
+            throw AppException.Validacion("rol", "Elige Administrador o Cajero.");
+
+        var usuario = await usuarios.ObtenerPorIdAsync(usuarioId, ct);
+        if (usuario is null || !usuario.Activo)
+            throw CredencialesInvalidas();
+
+        if (rol == Roles.Administrador && usuario.RolId != Roles.AdministradorId)
             throw new AppException(403, "ROL_NO_PERMITIDO", "Tu usuario no tiene permiso para entrar como Administrador.");
 
-        var token = tokens.Generar(usuario, solicitud.Rol!);
+        return EmitirSesion(usuario, rol);
+    }
+
+    private LoginResponse EmitirSesion(Usuario usuario, string rolActivo)
+    {
+        var token = tokens.Generar(usuario, rolActivo);
 
         return new LoginResponse(
             token.Token,
             token.ExpiraEnUtc,
-            new UsuarioSesionDto(usuario.Id, usuario.NombreCompleto, usuario.NombreUsuario, solicitud.Rol!));
+            new UsuarioSesionDto(
+                usuario.Id, usuario.NombreCompleto, usuario.NombreUsuario,
+                rolActivo, RolesDisponibles(usuario)));
     }
+
+    private static IReadOnlyList<string> RolesDisponibles(Usuario usuario) =>
+        usuario.RolId == Roles.AdministradorId
+            ? [Roles.Administrador, Roles.Cajero]
+            : [Roles.Cajero];
 
     private static void ValidarFormato(LoginRequest s)
     {
@@ -74,9 +103,6 @@ public partial class AuthService(
 
         if (s.Pin is null || !PinValido().IsMatch(s.Pin))
             errores["pin"] = ["El PIN debe tener de 4 a 6 dígitos."];
-
-        if (s.Rol is null || !Roles.Todos.Contains(s.Rol))
-            errores["rol"] = ["Elige Administrador o Cajero."];
 
         if (errores.Count > 0)
             throw new AppException(400, "VALIDACION", "Los datos enviados no son válidos.") { Errores = errores };

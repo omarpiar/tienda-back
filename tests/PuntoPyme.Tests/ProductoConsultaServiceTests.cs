@@ -14,7 +14,8 @@ public class ProductoConsultaServiceTests
 
     private static Producto Aceite(int stock = 3, int minimo = 5) => new()
     {
-        Id = 42, Nombre = "Aceite Vegetal 900ml", Sku = "770123456789", Categoria = "Abarrotes",
+        Id = 42, Nombre = "Aceite Vegetal 900ml", Sku = "770123456789",
+        Categoria = new Categoria { Nombre = "Abarrotes" },
         PrecioVenta = 75m, CostoCompra = 58m, Stock = stock, StockMinimo = minimo
     };
 

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using PuntoPyme.Application.Auth;
+using PuntoPyme.Application.Categorias;
 using PuntoPyme.Application.Productos;
 using PuntoPyme.Application.Reportes;
 using PuntoPyme.Application.Usuarios;
@@ -12,6 +13,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<AuthService>();
+        services.AddScoped<CategoriaService>();
         services.AddScoped<ProductoConsultaService>();
         services.AddScoped<ProductoService>();
         services.AddScoped<VentaService>();

@@ -42,9 +42,18 @@ public static class DbSeeder
             await db.SaveChangesAsync(ct);
         }
 
+        var categorias = await db.Categorias.ToDictionaryAsync(c => c.Nombre, ct);
+        var faltantes = CategoriasDemo().Where(nombre => !categorias.ContainsKey(nombre)).ToList();
+        if (faltantes.Count > 0)
+        {
+            db.Categorias.AddRange(faltantes.Select(nombre => new Categoria { Nombre = nombre }));
+            await db.SaveChangesAsync(ct);
+            categorias = await db.Categorias.ToDictionaryAsync(c => c.Nombre, ct);
+        }
+
         if (!await db.Productos.AnyAsync(ct))
         {
-            db.Productos.AddRange(ProductosDemo());
+            db.Productos.AddRange(ProductosDemo(categorias));
             await db.SaveChangesAsync(ct);
         }
     }
@@ -55,24 +64,29 @@ public static class DbSeeder
         RolId = rolId, Activo = true, FechaCreacionUtc = ahora
     };
 
-    private static Producto[] ProductosDemo() =>
+    private static string[] CategoriasDemo() =>
+        ["Bebidas", "Panadería", "Limpieza", "Abarrotes", "Lácteos", "Botanas"];
+
+    private static Producto[] ProductosDemo(IReadOnlyDictionary<string, Categoria> categorias) =>
     [
-        P("Refresco 600ml", "7501055300013", "Bebidas", 18, 13, 40, 10),
-        P("Agua natural 1L", "7501055300020", "Bebidas", 12, 8, 60, 12),
-        P("Pan blanco", "7501000100011", "Panadería", 32, 24, 6, 8),
-        P("Detergente 1L", "7501025400017", "Limpieza", 45, 33, 22, 6),
-        P("Aceite Vegetal 900ml", "770123456789", "Abarrotes", 75, 58, 3, 5),
-        P("Arroz 1kg", "7501000200028", "Abarrotes", 28, 21, 35, 8),
-        P("Frijol negro 1kg", "7501000200035", "Abarrotes", 38, 29, 0, 8),
-        P("Leche entera 1L", "7501020500042", "Lácteos", 27, 21, 18, 10),
-        P("Huevo 12 piezas", "7501000300059", "Abarrotes", 52, 42, 4, 6),
-        P("Papel higiénico 4 rollos", "7501025400064", "Limpieza", 36, 27, 25, 6),
-        P("Jabón de barra", "7501025400071", "Limpieza", 14, 10, 2, 6),
-        P("Galletas surtidas", "7501000400086", "Botanas", 22, 16, 30, 8),
+        P("Refresco 600ml", "7501055300013", categorias["Bebidas"], 18, 13, 40, 10),
+        P("Agua natural 1L", "7501055300020", categorias["Bebidas"], 12, 8, 60, 12),
+        P("Pan blanco", "7501000100011", categorias["Panadería"], 32, 24, 6, 8),
+        P("Detergente 1L", "7501025400017", categorias["Limpieza"], 45, 33, 22, 6),
+        P("Aceite Vegetal 900ml", "770123456789", categorias["Abarrotes"], 75, 58, 3, 5),
+        P("Arroz 1kg", "7501000200028", categorias["Abarrotes"], 28, 21, 35, 8),
+        P("Frijol negro 1kg", "7501000200035", categorias["Abarrotes"], 38, 29, 0, 8),
+        P("Leche entera 1L", "7501020500042", categorias["Lácteos"], 27, 21, 18, 10),
+        P("Huevo 12 piezas", "7501000300059", categorias["Abarrotes"], 52, 42, 4, 6),
+        P("Papel higiénico 4 rollos", "7501025400064", categorias["Limpieza"], 36, 27, 25, 6),
+        P("Jabón de barra", "7501025400071", categorias["Limpieza"], 14, 10, 2, 6),
+        P("Galletas surtidas", "7501000400086", categorias["Botanas"], 22, 16, 30, 8),
     ];
 
-    private static Producto P(string nombre, string sku, string cat, decimal precio, decimal costo, int stock, int minimo) => new()
+    private static Producto P(
+        string nombre, string sku, Categoria categoria, decimal precio, decimal costo, int stock, int minimo) => new()
     {
-        Nombre = nombre, Sku = sku, Categoria = cat, PrecioVenta = precio, CostoCompra = costo, Stock = stock, StockMinimo = minimo
+        Nombre = nombre, Sku = sku, CategoriaId = categoria.Id, Categoria = categoria,
+        PrecioVenta = precio, CostoCompra = costo, Stock = stock, StockMinimo = minimo
     };
 }
