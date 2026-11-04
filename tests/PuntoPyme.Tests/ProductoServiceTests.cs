@@ -166,4 +166,97 @@ public class ProductoServiceTests
         var ex = await Assert.ThrowsAsync<AppException>(() => _sut.ObtenerPorSkuAsync("nope"));
         Assert.Equal("PRODUCTO_NO_ENCONTRADO", ex.Code);
     }
+
+    [Fact]
+    public async Task Crear_con_categoria_valida_asigna_la_categoria()
+    {
+        var categoria = new Categoria { Id = 4, Nombre = "Bebidas" };
+        _categorias.ObtenerPorIdParaEditarAsync(4, Arg.Any<CancellationToken>()).Returns(categoria);
+
+        var d = await _sut.CrearAsync(new("Agua", "A-1", 4, 12m, 8m, 3, 5), usuarioId: 7);
+
+        Assert.Equal(4, d.CategoriaId);
+        Assert.Equal("Bebidas", d.Categoria);
+    }
+
+    [Fact]
+    public async Task Crear_con_categoria_id_invalido_responde_400()
+    {
+        var ex = await Assert.ThrowsAsync<AppException>(() =>
+            _sut.CrearAsync(new("Agua", "A-1", 0, 12m, 8m, 3, 5), usuarioId: 7));
+
+        Assert.Equal(400, ex.StatusCode);
+        Assert.Contains("categoriaId", ex.Errores!.Keys);
+    }
+
+    [Fact]
+    public async Task Editar_sin_cambios_registra_la_descripcion_correspondiente()
+    {
+        var p = new Producto
+        {
+            Id = 1,
+            Nombre = "Agua",
+            Sku = "A",
+            PrecioVenta = 10m,
+            CostoCompra = 5m,
+            Stock = 30,
+            StockMinimo = 5
+        };
+        _repo.ObtenerPorIdParaEditarAsync(1, Arg.Any<CancellationToken>()).Returns(p);
+        ProductoHistorial? registro = null;
+        await _historial.AgregarAsync(Arg.Do<ProductoHistorial>(h => registro = h), Arg.Any<CancellationToken>());
+
+        await _sut.EditarAsync(1, new("Agua", "A", null, 10m, 5m, 9999, 5), usuarioId: 7);
+
+        Assert.Equal("Sin cambios en los datos.", registro!.Descripcion);
+    }
+
+    [Fact]
+    public async Task Obtener_historial_mapea_los_registros_y_el_usuario()
+    {
+        _repo.ObtenerPorIdAsync(3, Arg.Any<CancellationToken>()).Returns(new Producto { Id = 3 });
+        _historial.ListarAsync(3, Arg.Any<CancellationToken>()).Returns(
+        [
+            new ProductoHistorial
+            {
+                Id = 10,
+                Accion = AccionesProducto.ReposicionStock,
+                Descripcion = "Se repusieron 5 unidades.",
+                FechaUtc = new DateTime(2026, 11, 4, 8, 0, 0, DateTimeKind.Utc),
+                StockAnterior = 1,
+                StockNuevo = 6,
+                UsuarioId = 7,
+                Usuario = new Usuario { NombreCompleto = "Ana Pérez" }
+            },
+            new ProductoHistorial
+            {
+                Id = 11,
+                Accion = AccionesProducto.Creacion,
+                Descripcion = "Producto creado.",
+                FechaUtc = new DateTime(2026, 11, 3, 8, 0, 0, DateTimeKind.Utc),
+                StockAnterior = 0,
+                StockNuevo = 1,
+                UsuarioId = 8,
+                Usuario = null!
+            }
+        ]);
+
+        var historial = await _sut.ObtenerHistorialAsync(3);
+
+        Assert.Equal(2, historial.Count);
+        Assert.Equal("Ana Pérez", historial[0].Usuario);
+        Assert.Equal(6, historial[0].StockNuevo);
+        Assert.Equal("", historial[1].Usuario);
+    }
+
+    [Fact]
+    public async Task Obtener_historial_de_un_producto_inexistente_responde_404()
+    {
+        _repo.ObtenerPorIdAsync(9, Arg.Any<CancellationToken>()).Returns((Producto?)null);
+
+        var ex = await Assert.ThrowsAsync<AppException>(() => _sut.ObtenerHistorialAsync(9));
+
+        Assert.Equal(404, ex.StatusCode);
+        Assert.Equal("PRODUCTO_NO_ENCONTRADO", ex.Code);
+    }
 }
