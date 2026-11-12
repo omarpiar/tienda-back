@@ -6,7 +6,7 @@ namespace PuntoPyme.Application.Productos;
 public static class ProductoMapeo
 {
     public static ProductoListaDto ALista(Producto p) =>
-        new(p.Id, p.Nombre, p.Sku, p.Categoria, p.PrecioVenta, p.Stock, p.StockMinimo,
+        new(p.Id, p.Nombre, p.Sku, p.CategoriaId, p.Categoria?.Nombre, p.PrecioVenta, p.Stock, p.StockMinimo,
             EstadoStock.Calcular(p.Stock, p.StockMinimo));
 
     public static ProductoDetalleDto ADetalle(Producto p, bool incluirCostos)
@@ -22,7 +22,11 @@ public static class ProductoMapeo
                 : Math.Round(ganancia.Value / p.PrecioVenta * 100m, 1, MidpointRounding.AwayFromZero);
         }
 
-        return new ProductoDetalleDto(p.Id, p.Nombre, p.Sku, p.Categoria, p.PrecioVenta,
+        return new ProductoDetalleDto(p.Id, p.Nombre, p.Sku, p.CategoriaId, p.Categoria?.Nombre, p.PrecioVenta,
             costo, ganancia, margen, p.Stock, p.StockMinimo, EstadoStock.Calcular(p.Stock, p.StockMinimo));
     }
+
+    public static ProductoHistorialDto AHistorial(ProductoHistorial h) =>
+        new(h.Id, h.Accion, h.Descripcion, h.FechaUtc, h.StockAnterior, h.StockNuevo,
+            h.UsuarioId, h.Usuario?.NombreCompleto ?? "");
 }

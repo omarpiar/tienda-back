@@ -12,7 +12,9 @@ public class ProductoRepository(PuntoPymeDbContext db) : IProductoRepository
     public async Task<ResultadoBusqueda> BuscarAsync(
         string? buscar, string estado, int pagina, int tamanoPagina, CancellationToken ct = default)
     {
-        IQueryable<Producto> consulta = db.Productos.AsNoTracking();
+        IQueryable<Producto> consulta = db.Productos.AsNoTracking()
+            .Include(p => p.Categoria)
+            .Where(p => !p.Eliminado);
 
         if (!string.IsNullOrWhiteSpace(buscar))
         {
@@ -40,25 +42,33 @@ public class ProductoRepository(PuntoPymeDbContext db) : IProductoRepository
     }
 
     public Task<Producto?> ObtenerPorIdAsync(int id, CancellationToken ct = default) =>
-        db.Productos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct);
+        db.Productos.AsNoTracking()
+            .Include(p => p.Categoria)
+            .FirstOrDefaultAsync(p => p.Id == id && !p.Eliminado, ct);
 
     public Task<Producto?> ObtenerPorIdParaEditarAsync(int id, CancellationToken ct = default) =>
-        db.Productos.FirstOrDefaultAsync(p => p.Id == id, ct);
+        db.Productos.Include(p => p.Categoria)
+            .FirstOrDefaultAsync(p => p.Id == id && !p.Eliminado, ct);
 
     public Task<Producto?> ObtenerPorSkuAsync(string sku, CancellationToken ct = default)
     {
         var minusculas = sku.ToLower();
-        return db.Productos.AsNoTracking().FirstOrDefaultAsync(p => p.Sku.ToLower() == minusculas, ct);
+        return db.Productos.AsNoTracking()
+            .Include(p => p.Categoria)
+            .FirstOrDefaultAsync(p => p.Sku.ToLower() == minusculas && !p.Eliminado, ct);
     }
 
     public Task<bool> ExisteSkuAsync(string sku, int? excluirId, CancellationToken ct = default)
     {
         var minusculas = sku.ToLower();
-        return db.Productos.AnyAsync(p => p.Sku.ToLower() == minusculas && (excluirId == null || p.Id != excluirId), ct);
+        return db.Productos.AnyAsync(
+            p => p.Sku.ToLower() == minusculas && !p.Eliminado && (excluirId == null || p.Id != excluirId), ct);
     }
 
     public async Task<IReadOnlyList<Producto>> ObtenerPorIdsAsync(IReadOnlyCollection<int> ids, CancellationToken ct = default) =>
-        await db.Productos.AsNoTracking().Where(p => ids.Contains(p.Id)).ToListAsync(ct);
+        await db.Productos.AsNoTracking()
+            .Where(p => ids.Contains(p.Id) && !p.Eliminado)
+            .ToListAsync(ct);
 
     public async Task AgregarAsync(Producto producto, CancellationToken ct = default)
     {

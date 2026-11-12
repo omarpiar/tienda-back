@@ -40,19 +40,32 @@ public class AuthServiceTests
             Activo = activo
         };
         _repo.ObtenerPorNombreUsuarioAsync("laura", Arg.Any<CancellationToken>()).Returns(u);
+        _repo.ObtenerPorIdAsync(u.Id, Arg.Any<CancellationToken>()).Returns(u);
         return u;
     }
 
     [Fact]
-    public async Task Credenciales_correctas_devuelven_token_con_el_rol_elegido()
+    public async Task Credenciales_correctas_devuelven_token_con_Cajero_por_defecto()
     {
         DadoUnUsuario(Roles.Administrador);
 
-        var r = await _sut.LoginAsync(new LoginRequest("laura", "1234", Roles.Cajero));
+        var r = await _sut.LoginAsync(new LoginRequest("laura", "1234"));
 
         Assert.Equal("token-Cajero", r.Token);
         Assert.Equal(Roles.Cajero, r.Usuario.Rol);
+        Assert.Equal(new[] { Roles.Administrador, Roles.Cajero }, r.Usuario.Roles);
         Assert.Equal("laura", r.Usuario.NombreUsuario);
+    }
+
+    [Fact]
+    public async Task Un_cajero_solo_tiene_disponible_el_rol_Cajero()
+    {
+        DadoUnUsuario(Roles.Cajero);
+
+        var r = await _sut.LoginAsync(new LoginRequest("laura", "1234"));
+
+        Assert.Equal(Roles.Cajero, r.Usuario.Rol);
+        Assert.Equal(new[] { Roles.Cajero }, r.Usuario.Roles);
     }
 
     [Fact]
@@ -61,7 +74,7 @@ public class AuthServiceTests
         var u = DadoUnUsuario();
 
         var ex = await Assert.ThrowsAsync<AppException>(() =>
-            _sut.LoginAsync(new LoginRequest("laura", "9999", Roles.Cajero)));
+            _sut.LoginAsync(new LoginRequest("laura", "9999")));
 
         Assert.Equal(401, ex.StatusCode);
         Assert.Equal("CREDENCIALES_INVALIDAS", ex.Code);
@@ -76,7 +89,7 @@ public class AuthServiceTests
         u.IntentosFallidos = 4;
 
         var ex = await Assert.ThrowsAsync<AppException>(() =>
-            _sut.LoginAsync(new LoginRequest("laura", "9999", Roles.Cajero)));
+            _sut.LoginAsync(new LoginRequest("laura", "9999")));
 
         Assert.Equal(401, ex.StatusCode);
         Assert.Equal(_reloj.GetUtcNow().UtcDateTime.AddMinutes(1), u.BloqueadoHastaUtc);
@@ -90,7 +103,7 @@ public class AuthServiceTests
         u.BloqueadoHastaUtc = _reloj.GetUtcNow().UtcDateTime.AddSeconds(30);
 
         var ex = await Assert.ThrowsAsync<AppException>(() =>
-            _sut.LoginAsync(new LoginRequest("laura", "1234", Roles.Cajero)));
+            _sut.LoginAsync(new LoginRequest("laura", "1234")));
 
         Assert.Equal(429, ex.StatusCode);
         Assert.Equal("USUARIO_BLOQUEADO", ex.Code);
@@ -104,7 +117,7 @@ public class AuthServiceTests
         u.BloqueadoHastaUtc = _reloj.GetUtcNow().UtcDateTime.AddSeconds(30);
         _reloj.Advance(TimeSpan.FromSeconds(31));
 
-        var r = await _sut.LoginAsync(new LoginRequest("laura", "1234", Roles.Cajero));
+        var r = await _sut.LoginAsync(new LoginRequest("laura", "1234"));
 
         Assert.Equal("token-Cajero", r.Token);
         Assert.Null(u.BloqueadoHastaUtc);
@@ -112,27 +125,43 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task Cajero_que_elige_Administrador_recibe_403()
+    public async Task Cajero_que_intenta_cambiar_a_Administrador_recibe_403()
     {
         DadoUnUsuario(Roles.Cajero);
 
         var ex = await Assert.ThrowsAsync<AppException>(() =>
-            _sut.LoginAsync(new LoginRequest("laura", "1234", Roles.Administrador)));
+            _sut.CambiarRolAsync(1, Roles.Administrador));
 
         Assert.Equal(403, ex.StatusCode);
         Assert.Equal("ROL_NO_PERMITIDO", ex.Code);
     }
 
     [Fact]
-    public async Task Administrador_puede_entrar_como_Cajero_o_como_Administrador()
+    public async Task Administrador_puede_alternar_entre_Cajero_y_Administrador()
     {
         DadoUnUsuario(Roles.Administrador);
 
-        var comoCajero = await _sut.LoginAsync(new LoginRequest("laura", "1234", Roles.Cajero));
-        var comoAdmin = await _sut.LoginAsync(new LoginRequest("laura", "1234", Roles.Administrador));
+        var login = await _sut.LoginAsync(new LoginRequest("laura", "1234"));
+        var comoAdmin = await _sut.CambiarRolAsync(1, Roles.Administrador);
+        var comoCajero = await _sut.CambiarRolAsync(1, Roles.Cajero);
 
-        Assert.Equal(Roles.Cajero, comoCajero.Usuario.Rol);
+        Assert.Equal(Roles.Cajero, login.Usuario.Rol);
         Assert.Equal(Roles.Administrador, comoAdmin.Usuario.Rol);
+        Assert.Equal("token-Administrador", comoAdmin.Token);
+        Assert.Equal(Roles.Cajero, comoCajero.Usuario.Rol);
+        Assert.Equal("token-Cajero", comoCajero.Token);
+    }
+
+    [Fact]
+    public async Task Cambiar_rol_de_un_usuario_inactivo_responde_401()
+    {
+        DadoUnUsuario(activo: false);
+
+        var ex = await Assert.ThrowsAsync<AppException>(() =>
+            _sut.CambiarRolAsync(1, Roles.Cajero));
+
+        Assert.Equal(401, ex.StatusCode);
+        Assert.Equal("CREDENCIALES_INVALIDAS", ex.Code);
     }
 
     [Theory]
@@ -144,7 +173,7 @@ public class AuthServiceTests
     public async Task Pin_con_formato_invalido_se_rechaza_con_400_sin_consultar_la_base(string? pin)
     {
         var ex = await Assert.ThrowsAsync<AppException>(() =>
-            _sut.LoginAsync(new LoginRequest("laura", pin, Roles.Cajero)));
+            _sut.LoginAsync(new LoginRequest("laura", pin)));
 
         Assert.Equal(400, ex.StatusCode);
         Assert.Equal("VALIDACION", ex.Code);
@@ -153,13 +182,14 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task Rol_invalido_se_rechaza_con_400()
+    public async Task Rol_invalido_al_cambiar_se_rechaza_con_400()
     {
         var ex = await Assert.ThrowsAsync<AppException>(() =>
-            _sut.LoginAsync(new LoginRequest("laura", "1234", "Gerente")));
+            _sut.CambiarRolAsync(1, "Gerente"));
 
         Assert.Equal(400, ex.StatusCode);
         Assert.Contains("rol", ex.Errores!.Keys);
+        await _repo.DidNotReceive().ObtenerPorIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -167,11 +197,11 @@ public class AuthServiceTests
     {
         DadoUnUsuario(activo: false);
         var exInactivo = await Assert.ThrowsAsync<AppException>(() =>
-            _sut.LoginAsync(new LoginRequest("laura", "1234", Roles.Cajero)));
+            _sut.LoginAsync(new LoginRequest("laura", "1234")));
 
         DadoUnUsuario();
         var exPinMalo = await Assert.ThrowsAsync<AppException>(() =>
-            _sut.LoginAsync(new LoginRequest("laura", "9999", Roles.Cajero)));
+            _sut.LoginAsync(new LoginRequest("laura", "9999")));
 
         Assert.Equal(exPinMalo.StatusCode, exInactivo.StatusCode);
         Assert.Equal(exPinMalo.Code, exInactivo.Code);
@@ -184,7 +214,7 @@ public class AuthServiceTests
         _repo.ObtenerPorNombreUsuarioAsync("nadie", Arg.Any<CancellationToken>()).Returns((Usuario?)null);
 
         var ex = await Assert.ThrowsAsync<AppException>(() =>
-            _sut.LoginAsync(new LoginRequest("nadie", "1234", Roles.Cajero)));
+            _sut.LoginAsync(new LoginRequest("nadie", "1234")));
 
         Assert.Equal(401, ex.StatusCode);
         Assert.Equal(AuthService.MensajeCredenciales, ex.Message);
@@ -195,7 +225,7 @@ public class AuthServiceTests
     {
         DadoUnUsuario();
 
-        await _sut.LoginAsync(new LoginRequest("  LAU ra ", "1234", Roles.Cajero));
+        await _sut.LoginAsync(new LoginRequest("  LAU ra ", "1234"));
 
         await _repo.Received(1).ObtenerPorNombreUsuarioAsync("laura", Arg.Any<CancellationToken>());
     }

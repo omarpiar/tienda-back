@@ -1,15 +1,26 @@
 ### Pruebas rápidas (VS Code con REST Client, o Visual Studio / Rider)
 @host = http://localhost:5080
 
-### API-01 login (admin entra como Administrador)
+### API-01 login (entra como Cajero por defecto)
 # @name login
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{ "nombreUsuario": "admin", "pin": "1234", "rol": "Administrador" }
+{ "nombreUsuario": "admin", "pin": "1234" }
 
 ###
 @token = {{login.response.body.token}}
+
+### Cambiar el rol activo (solo Administrador)
+# @name cambiarRol
+POST {{host}}/api/auth/rol
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "rol": "Administrador" }
+
+###
+@tokenAdmin = {{cambiarRol.response.body.token}}
 
 ### API-02 lista
 GET {{host}}/api/productos?estado=stockBajo

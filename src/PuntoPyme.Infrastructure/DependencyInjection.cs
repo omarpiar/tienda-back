@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PuntoPyme.Application.Auth;
+using PuntoPyme.Application.Categorias;
 using PuntoPyme.Application.Productos;
 using PuntoPyme.Application.Reportes;
 using PuntoPyme.Application.Ventas;
@@ -21,7 +22,9 @@ public static class DependencyInjection
         services.AddSingleton<ITokenService, JwtTokenService>();
 
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+        services.AddScoped<ICategoriaRepository, CategoriaRepository>();
         services.AddScoped<IProductoRepository, ProductoRepository>();
+        services.AddScoped<IProductoHistorialRepository, ProductoHistorialRepository>();
         services.AddScoped<IVentaRepository, VentaRepository>();
         services.AddScoped<IReporteRepository, ReporteRepository>();
         return services;

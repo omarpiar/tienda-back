@@ -25,7 +25,7 @@ cd frontend
 npm install
 npm run demo
 ```
-Abre http://localhost:5173. Usuarios: `admin` / `1234` (puede entrar como Administrador o Cajero) y `laura` / `4821` (Cajero).
+Abre http://localhost:5173. Usuarios: `admin` / `1234` (entra como Cajero y puede cambiar a Administrador desde la sesión) y `laura` / `4821` (Cajero).
 Arranca una API en memoria con el mismo contrato que el backend .NET; los datos se pierden al cerrarla.
 
 ### Opción B: sistema completo (.NET 10 + PostgreSQL)
@@ -60,7 +60,7 @@ Las pruebas del frontend incluyen un recorrido completo de la app real: login, v
 ## Para integrar con su repo
 - `db/schema.sql` es para correr rápido en local. Si ustedes usan migraciones de EF, **no lo ejecuten en la misma base**: generen las migraciones con `dotnet ef migrations add ...` a partir de las configuraciones en `Infrastructure/Data/Configurations` (producen el mismo esquema).
 - Si ya tienen entidades `Producto`, `Usuario` o `Rol`, usen las suyas y quiten las mías (los nombres de campos usados están en `Domain/Entities`).
-- Decisiones del documento que quedaron implementadas: D1 el precio lo pone el servidor; D2 el administrador entra como Administrador o Cajero, el cajero solo como Cajero; D3 el margen se calcula sobre el precio de venta; D5 "stock bajo" incluye los agotados; D6 los reportes usan el día local del dispositivo convertido a UTC; D7 los conflictos de stock al sincronizar los resuelve un administrador.
+- Decisiones del documento que quedaron implementadas: D1 el precio lo pone el servidor; D2 el login entra como Cajero y el administrador puede cambiar a Administrador desde la sesión, el cajero solo puede ser Cajero; D3 el margen se calcula sobre el precio de venta; D5 "stock bajo" incluye los agotados; D6 los reportes usan el día local del dispositivo convertido a UTC; D7 los conflictos de stock al sincronizar los resuelve un administrador.
 - Las ventas pendientes se envían con el usuario que las hizo (si otra persona inicia sesión en la misma tablet, esperan a que esa persona entre).
 
 ## Pendiente (siguiente etapa del documento)

@@ -17,10 +17,15 @@ public class ProductoConfiguration : IEntityTypeConfiguration<Producto>
         b.HasKey(p => p.Id);
         b.Property(p => p.Nombre).IsRequired().HasMaxLength(150);
         b.Property(p => p.Sku).IsRequired().HasMaxLength(50);
-        b.Property(p => p.Categoria).HasMaxLength(100);
         b.Property(p => p.PrecioVenta).HasPrecision(12, 2);
         b.Property(p => p.CostoCompra).HasPrecision(12, 2);
         b.Property(p => p.StockMinimo).HasDefaultValue(5);
-        b.HasIndex(p => p.Sku).IsUnique().HasDatabaseName("IX_Productos_Sku");
+        b.Property(p => p.Eliminado).HasDefaultValue(false);
+        b.HasOne(p => p.Categoria)
+            .WithMany(c => c.Productos)
+            .HasForeignKey(p => p.CategoriaId)
+            .OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(p => p.CategoriaId).HasDatabaseName("IX_Productos_CategoriaId");
+        b.HasIndex(p => p.Sku).IsUnique().HasDatabaseName("IX_Productos_Sku").HasFilter("\"Eliminado\" = false");
     }
 }

@@ -36,7 +36,7 @@ public class ProductosController(ProductoConsultaService consulta, ProductoServi
     [Authorize(Policy = Politicas.SoloAdministrador)]
     public async Task<ActionResult<ProductoDetalleDto>> Crear(ProductoRequest solicitud, CancellationToken ct)
     {
-        var creado = await productos.CrearAsync(solicitud, ct);
+        var creado = await productos.CrearAsync(solicitud, User.Id(), ct);
         return CreatedAtAction(nameof(Obtener), new { id = creado.Id }, creado);
     }
 
@@ -44,5 +44,26 @@ public class ProductosController(ProductoConsultaService consulta, ProductoServi
     [HttpPut("{id:int}")]
     [Authorize(Policy = Politicas.SoloAdministrador)]
     public async Task<ActionResult<ProductoDetalleDto>> Editar(int id, ProductoRequest solicitud, CancellationToken ct) =>
-        Ok(await productos.EditarAsync(id, solicitud, ct));
+        Ok(await productos.EditarAsync(id, solicitud, User.Id(), ct));
+
+    /// <summary>Repone stock y deja registro en el historial.</summary>
+    [HttpPost("{id:int}/stock")]
+    [Authorize(Policy = Politicas.SoloAdministrador)]
+    public async Task<ActionResult<ProductoDetalleDto>> ReponerStock(int id, ReponerStockRequest solicitud, CancellationToken ct) =>
+        Ok(await productos.ReponerStockAsync(id, solicitud, User.Id(), ct));
+
+    /// <summary>Eliminación lógica: conserva ventas e historial.</summary>
+    [HttpDelete("{id:int}")]
+    [Authorize(Policy = Politicas.SoloAdministrador)]
+    public async Task<IActionResult> Eliminar(int id, CancellationToken ct)
+    {
+        await productos.EliminarAsync(id, User.Id(), ct);
+        return NoContent();
+    }
+
+    /// <summary>Historial de cambios del producto, solo para administradores.</summary>
+    [HttpGet("{id:int}/historial")]
+    [Authorize(Policy = Politicas.SoloAdministrador)]
+    public async Task<ActionResult<IReadOnlyList<ProductoHistorialDto>>> Historial(int id, CancellationToken ct) =>
+        Ok(await productos.ObtenerHistorialAsync(id, ct));
 }
