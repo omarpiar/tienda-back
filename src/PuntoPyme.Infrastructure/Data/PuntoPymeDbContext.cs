@@ -7,7 +7,9 @@ public class PuntoPymeDbContext(DbContextOptions<PuntoPymeDbContext> options) : 
 {
     public DbSet<Rol> Roles => Set<Rol>();
     public DbSet<Usuario> Usuarios => Set<Usuario>();
+    public DbSet<Categoria> Categorias => Set<Categoria>();
     public DbSet<Producto> Productos => Set<Producto>();
+    public DbSet<ProductoHistorial> ProductoHistorial => Set<ProductoHistorial>();
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<VentaDetalle> VentaDetalles => Set<VentaDetalle>();
 
