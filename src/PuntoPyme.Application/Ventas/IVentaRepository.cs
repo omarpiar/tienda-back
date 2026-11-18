@@ -2,10 +2,14 @@ using PuntoPyme.Domain.Entities;
 
 namespace PuntoPyme.Application.Ventas;
 
+public record ResultadoVentas(IReadOnlyList<Venta> Items, int Total);
+
 public interface IVentaRepository
 {
     /// <summary>Venta con Usuario y Detalles.Producto cargados, o null.</summary>
     Task<Venta?> ObtenerPorIdLocalAsync(Guid idLocal, CancellationToken ct = default);
+
+    Task<ResultadoVentas> ListarAsync(DateTime? desdeUtc, DateTime? hastaUtc, int pagina, int tamanoPagina, CancellationToken ct = default);
 
     /// <summary>
     /// En una sola transacción: descuenta el stock con una actualización condicional
