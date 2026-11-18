@@ -18,6 +18,9 @@ public record VentaDto(
 /// <summary>Creada = false cuando el idLocal ya existía (la sincronización repetida no duplica).</summary>
 public record ResultadoVenta(VentaDto Venta, bool Creada);
 
+public record HistorialVentasDto(
+    IReadOnlyList<VentaDto> Items, int Total, int Pagina, int TamanoPagina);
+
 public record StockFaltante(int ProductoId, string Nombre, int Disponible, int Solicitado);
 
 /// <summary>Venta es null cuando faltó stock (no se guardó nada).</summary>

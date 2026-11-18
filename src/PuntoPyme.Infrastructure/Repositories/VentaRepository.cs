@@ -11,6 +11,23 @@ public class VentaRepository(PuntoPymeDbContext db) : IVentaRepository
     public Task<Venta?> ObtenerPorIdLocalAsync(Guid idLocal, CancellationToken ct = default) =>
         Consulta().FirstOrDefaultAsync(v => v.IdLocal == idLocal, ct);
 
+    public async Task<ResultadoVentas> ListarAsync(
+        DateTime? desdeUtc, DateTime? hastaUtc, int pagina, int tamanoPagina, CancellationToken ct = default)
+    {
+        var consulta = Consulta();
+        if (desdeUtc is DateTime desde) consulta = consulta.Where(v => v.FechaVentaUtc >= desde);
+        if (hastaUtc is DateTime hasta) consulta = consulta.Where(v => v.FechaVentaUtc < hasta);
+
+        var total = await consulta.CountAsync(ct);
+        var items = await consulta
+            .OrderByDescending(v => v.FechaVentaUtc).ThenByDescending(v => v.Id)
+            .Skip((pagina - 1) * tamanoPagina)
+            .Take(tamanoPagina)
+            .ToListAsync(ct);
+
+        return new ResultadoVentas(items, total);
+    }
+
     public async Task<RegistroVentaResultado> RegistrarAsync(Venta venta, CancellationToken ct = default)
     {
         try
