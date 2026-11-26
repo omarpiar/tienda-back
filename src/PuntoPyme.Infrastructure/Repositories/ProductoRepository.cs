@@ -24,9 +24,9 @@ public class ProductoRepository(PuntoPymeDbContext db) : IProductoRepository
                 EF.Functions.ILike(p.Sku, patron, "\\"));
         }
 
-        // D5: stockBajo incluye los agotados; agotados trae solo stock 0.
+        // Stock bajo excluye los agotados: esos productos tienen su propio filtro.
         if (estado == FiltroEstado.StockBajo)
-            consulta = consulta.Where(p => p.Stock <= p.StockMinimo);
+            consulta = consulta.Where(p => p.Stock > 0 && p.Stock <= p.StockMinimo);
         else if (estado == FiltroEstado.Agotados)
             consulta = consulta.Where(p => p.Stock == 0);
 
